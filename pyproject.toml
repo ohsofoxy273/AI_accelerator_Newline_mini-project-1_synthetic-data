@@ -1,0 +1,58 @@
+[project]
+name = "mini_project_1_pathdojo_support"
+version = "0.1.0"
+description = "Synthetic customer support Q&A data generator and evaluation pipeline for medical question bank support emails."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Matthew Fox" }
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "instructor>=1.0.0",
+    "openai>=1.0.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "black>=24.0.0",
+]
+
+[project.scripts]
+mp1-generate = "mp1_support_pipeline.generate:main"
+mp1-quality-gate = "mp1_support_pipeline.quality_gate:main"
+mp1-human-label = "mp1_support_pipeline.human_label:main"
+mp1-judge = "mp1_support_pipeline.judge:main"
+mp1-analyze = "mp1_support_pipeline.analyze:main"
+mp1-iterate = "mp1_support_pipeline.iterate:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mp1_support_pipeline"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
