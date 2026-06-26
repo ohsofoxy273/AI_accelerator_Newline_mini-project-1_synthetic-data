@@ -1,7 +1,27 @@
 *.env*
 
+# Data outputs
 data/raw/*.jsonl
+data/raw/*.json
+data/validated/*.jsonl
+data/validated/*.json
+data/labels/*.jsonl
+data/labels/*.json
 logs/*.jsonl
+logs/*.json
+visualizations/*.png
+
+# Keep reports because they are project evidence
+!data/reports/
+!data/reports/*.json
+
+# Keep directory placeholders
+!data/raw/.gitkeep
+!data/validated/.gitkeep
+!data/labels/.gitkeep
+!data/reports/.gitkeep
+!logs/.gitkeep
+!visualizations/.gitkeep
 
 .DS_Store
 
