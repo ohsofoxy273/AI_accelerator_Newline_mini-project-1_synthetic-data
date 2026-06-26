@@ -1,2 +1,7 @@
 *.env*
+
+data/raw/*.jsonl
+logs/*.jsonl
+
 .DS_Store
+
