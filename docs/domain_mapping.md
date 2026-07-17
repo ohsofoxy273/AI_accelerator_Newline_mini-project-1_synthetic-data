@@ -10,7 +10,8 @@ Medical question bank customer support emails for a pathology/psychiatry exam-pr
 
 ## Unit of data
 
-One synthetic customer support request plus one ideal support response.
+One synthetic support case artifact: a customer support request, a customer-facing
+support reply, and internal support metadata used to resolve or triage the case.
 
 ## Goal
 
@@ -18,15 +19,32 @@ Generate, validate, label, judge, analyze, and improve synthetic medical questio
 
 ## Required field mapping
 
-| Required field      | Medical question bank support meaning                                        |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `question`          | Customer email or support request                                            |
-| `answer`            | Ideal support response draft                                                 |
-| `equipment_problem` | Specific customer support issue being addressed                              |
-| `tools_required`    | Internal tools, resources, or information needed to resolve the issue        |
-| `steps`             | Ordered support workflow steps                                               |
-| `safety_info`       | Privacy, billing, account-security, or data-handling safeguard               |
-| `tips`              | Useful support-handling tip that improves the response or resolution process |
+| Required field      | Primary audience      | Medical question bank support meaning                                                                                     |
+| ------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `question`          | Customer              | Customer email or support request                                                                                         |
+| `answer`            | Customer              | Ideal support response draft that could be sent to the customer                                                           |
+| `equipment_problem` | Internal/support      | Concise summary of the customer support issue being addressed; summarize the problem, not the answer                      |
+| `tools_required`    | Internal/support      | Internal tools, resources, or information needed to resolve the issue                                                     |
+| `steps`             | Internal/support      | Ordered support workflow steps; these may include customer actions that support should ask the customer to try            |
+| `safety_info`       | Mostly support-facing | Privacy, billing, account-security, screenshot, or data-handling safeguard; may include customer-facing wording           |
+| `tips`              | Support-facing        | Useful support-handling tips; customer-facing suggestions can pass when they are specific things support should recommend |
+
+The generated record should be labeled as a whole support case artifact, not
+only as an email. Minor audience mixing is acceptable when the field remains
+useful and safe for support handling.
+
+## Workflow realism rule
+
+Evaluate support items against the intended real medical question bank workflow,
+not generic SaaS plausibility.
+
+Items should fail relevant dimensions when they invent unsupported product
+workflows such as activation links, account recovery forms, fixed lockout periods,
+automatic renewals, app-store subscriptions, prorated billing cycles, patient
+charts, or clinical-care workflows.
+
+Fluent and plausible text can still fail if it would mislead support staff or
+customers about how the actual platform works.
 
 ## Five support categories
 
@@ -40,14 +58,14 @@ Each generated run should target approximately 20% coverage per category.
 
 ## Adapted quality dimensions
 
-| Dimension                | Adapted meaning                                                                                                                                                                                            |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1 Answer Completeness   | The support response contains enough information to resolve or appropriately triage the customer’s issue end to end.                                                                                       |
-| D2 Safety Specificity    | The response identifies a specific privacy, billing, account-security, or data-handling risk and gives a specific precaution. Generic statements such as “be careful with user data” fail.                 |
-| D3 Tool Realism          | The listed tools/resources are realistic for a medical question bank support workflow, such as admin dashboard, Stripe, support inbox, logs, user email, screenshots, or browser/device details.           |
-| D4 Scope Appropriateness | The response stays within realistic support authority and clearly escalates issues that require engineering, billing review, admin approval, or content review.                                            |
-| D5 Context Clarity       | The customer issue and support response contain enough context to understand the problem, including relevant account, subscription, content-access, device, browser, or institutional details when needed. |
-| D6 Tip Usefulness        | The tip provides non-obvious, task-specific support advice that adds value beyond the workflow steps. Generic encouragement or restating a step fails.                                                     |
+| Dimension                | Adapted meaning                                                                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1 Answer Completeness   | The support case contains enough information to resolve or appropriately triage the customer’s issue end to end, especially in the answer, workflow steps, requested information, and escalation path. Unsupported workflow assumptions can fail this dimension. |
+| D2 Safety Specificity    | The case identifies a specific privacy, billing, account-security, screenshot, medical/private-information, or data-handling risk and gives a specific precaution. Generic statements such as “be careful with user data” fail.     |
+| D3 Tool Realism          | The listed tools/resources are realistic for the intended medical question bank support workflow, such as admin dashboard, Stripe, support inbox, logs, user email, screenshots, receipts, or browser/device details. Unsupported product tools fail.           |
+| D4 Scope Appropriateness | The answer and workflow stay within realistic support authority and clearly escalate issues that require engineering, billing review, admin approval, content review, or account verification. Unsupported authority or product workflows fail.                |
+| D5 Context Clarity       | The customer issue, internal issue summary, and answer contain enough context to understand the problem, including relevant account, subscription, content-access, device, browser, billing, or institutional details when needed. Unsupported platform context can fail. |
+| D6 Tip Usefulness        | The tips provide non-obvious, task-specific support advice that adds value beyond the workflow steps. Customer-facing troubleshooting suggestions can pass if they are useful things support should recommend.                     |
 
 ## Benchmark adaptation
 

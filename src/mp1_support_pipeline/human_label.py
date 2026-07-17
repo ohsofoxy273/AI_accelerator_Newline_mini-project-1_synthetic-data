@@ -9,8 +9,9 @@ Input:
 Output:
     data/labels/human_labels_baseline.jsonl
 
-Example:
+Examples:
     uv run python -m mp1_support_pipeline.human_label --limit 20
+    uv run python -m mp1_support_pipeline.human_label --sample-strategy stratified --limit 20
 """
 
 from __future__ import annotations
@@ -22,49 +23,50 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from mp1_support_pipeline.config import LABELS_DIR, QUALITY_DIMENSIONS, VALIDATED_DIR
+from mp1_support_pipeline.config import CATEGORIES, LABELS_DIR, QUALITY_DIMENSIONS, VALIDATED_DIR
 from mp1_support_pipeline.models import GeneratedRecord, QualityLabel
 
 
 DEFAULT_INPUT_FILENAME = "validated_baseline.jsonl"
 DEFAULT_OUTPUT_FILENAME = "human_labels_baseline.jsonl"
 DEFAULT_LIMIT = 20
+SampleStrategy = Literal["sequential", "stratified"]
 
 DIMENSION_RUBRICS = {
     "answer_completeness": {
         "label": "D1 Answer Completeness",
-        "question": "Does the support response contain enough information to resolve or appropriately triage the issue end to end?",
-        "pass": "The response includes concrete next steps, relevant resources, safety/privacy handling, and a useful resolution or escalation path.",
-        "fail": "The response is vague, incomplete, missing key steps, or leaves the customer/support agent unsure what to do next.",
+        "question": "Does the support case contain enough information to resolve or appropriately triage the issue end to end?",
+        "pass": "The answer and workflow include concrete next steps, requested information, safety/privacy handling, and a useful resolution or escalation path.",
+        "fail": "The answer or workflow is vague, incomplete, missing key steps, depends on an unsupported platform workflow, or leaves the customer/support agent unsure what to do next.",
     },
     "safety_specificity": {
         "label": "D2 Safety Specificity",
-        "question": "Does the response identify a specific privacy, billing, account-security, or data-handling risk and give a specific precaution?",
-        "pass": "The safety note names a relevant risk, such as account access, password reset, billing data, screenshots, subscription records, or institutional user data.",
+        "question": "Does the case identify a specific privacy, billing, account-security, screenshot, medical/private-information, or data-handling risk and give a specific precaution?",
+        "pass": "The safety note names a relevant risk, such as account access, password reset, billing data, screenshots, subscription records, institutional user data, or private medical information.",
         "fail": "The safety note is generic, such as 'be careful' or 'protect user data,' without a specific risk or precaution.",
     },
     "tool_realism": {
         "label": "D3 Tool Realism",
-        "question": "Are the listed tools/resources realistic for a medical question bank support workflow?",
-        "pass": "Resources are plausible, such as admin dashboard, support inbox, Stripe/billing portal, logs, screenshots, user email, browser/device details, or invoice records.",
-        "fail": "Resources are vague, irrelevant, unavailable to support, or not actually useful for resolving the issue.",
+        "question": "Are the listed tools/resources realistic for the intended medical question bank support workflow?",
+        "pass": "Resources fit the real workflow, such as admin dashboard, support inbox, Stripe/billing portal, logs, screenshots, user email, browser/device details, receipts, or invoice records.",
+        "fail": "Resources are vague, irrelevant, unavailable to support, or invent unsupported workflows such as activation links, account recovery forms, app-store subscriptions, patient charts, or clinical-care systems.",
     },
     "scope_appropriateness": {
         "label": "D4 Scope Appropriateness",
-        "question": "Does the response stay within realistic support authority and escalate when needed?",
-        "pass": "The response avoids overpromising and clearly escalates engineering, billing review, admin approval, or content review when appropriate.",
-        "fail": "The response promises actions support cannot safely take, bypasses account/security processes, or gives inappropriate authority to frontline support.",
+        "question": "Do the answer and workflow stay within realistic support authority and escalate when needed?",
+        "pass": "The case avoids overpromising and clearly escalates engineering, billing review, admin approval, content review, or account verification when appropriate.",
+        "fail": "The response promises actions support cannot safely take, bypasses account/security processes, invents unsupported product workflows, or gives inappropriate authority to frontline support.",
     },
     "context_clarity": {
         "label": "D5 Context Clarity",
-        "question": "Is there enough context to understand the customer issue and why the response addresses it?",
-        "pass": "The question, issue, and response include enough relevant account, subscription, content-access, browser/device, billing, or institutional context.",
-        "fail": "The issue is too vague, the response does not clearly match the problem, or important context is missing.",
+        "question": "Is there enough context to understand the customer issue and why the answer addresses it?",
+        "pass": "The question, internal issue summary, and answer include enough relevant account, subscription, content-access, browser/device, billing, or institutional context.",
+        "fail": "The issue is too vague, the internal issue summary describes the answer instead of the problem, the answer does not match the problem, important context is missing, or the case assumes unsupported platform behavior.",
     },
     "tip_usefulness": {
         "label": "D6 Tip Usefulness",
-        "question": "Does the tip add non-obvious, task-specific support value beyond the workflow steps?",
-        "pass": "The tip would genuinely help a support agent handle the case better, faster, or more safely.",
+        "question": "Do the tips add non-obvious, task-specific support value beyond the workflow steps?",
+        "pass": "The tips help a support agent handle the case better, faster, or more safely. Customer-facing troubleshooting suggestions can pass when they are useful things support should recommend.",
         "fail": "The tip is generic, merely repeats a step, or says something obvious like 'be polite' or 'follow up.'",
     },
 }
@@ -126,6 +128,66 @@ def save_labels(path: Path, labels_by_trace_id: dict[str, QualityLabel]) -> None
         for _, label in sorted(labels_by_trace_id.items(), key=lambda item: item[0])
     ]
     write_jsonl(path, rows)
+
+
+def is_reviewable(
+    record: GeneratedRecord,
+    existing_labels: dict[str, QualityLabel],
+    overwrite: bool,
+) -> bool:
+    """Return whether the record should be shown to the reviewer."""
+    return overwrite or record.trace_id not in existing_labels
+
+
+def select_records_for_review(
+    records: list[GeneratedRecord],
+    *,
+    start_index: int,
+    existing_labels: dict[str, QualityLabel],
+    overwrite: bool,
+    sample_strategy: SampleStrategy,
+) -> list[tuple[int, GeneratedRecord]]:
+    """Select candidate records while preserving original one-based item numbers."""
+    indexed_records = list(enumerate(records[start_index:], start=start_index + 1))
+    reviewable_records = [
+        (visible_index, record)
+        for visible_index, record in indexed_records
+        if is_reviewable(record, existing_labels, overwrite)
+    ]
+
+    if sample_strategy == "sequential":
+        return reviewable_records
+
+    records_by_category: dict[str, list[tuple[int, GeneratedRecord]]] = {
+        category: [] for category in CATEGORIES
+    }
+    unexpected_category_records: list[tuple[int, GeneratedRecord]] = []
+
+    for visible_index, record in reviewable_records:
+        if record.category in records_by_category:
+            records_by_category[record.category].append((visible_index, record))
+        else:
+            unexpected_category_records.append((visible_index, record))
+
+    stratified_records: list[tuple[int, GeneratedRecord]] = []
+    category_position = 0
+
+    while True:
+        added_this_round = False
+
+        for category in CATEGORIES:
+            category_records = records_by_category[category]
+
+            if category_position < len(category_records):
+                stratified_records.append(category_records[category_position])
+                added_this_round = True
+
+        if not added_this_round:
+            break
+
+        category_position += 1
+
+    return stratified_records + unexpected_category_records
 
 
 def wrap(text: str, width: int = 96, indent: str = "") -> str:
@@ -299,6 +361,16 @@ def parse_args() -> argparse.Namespace:
         help="Start index within the validated records. Zero-based. Default: 0.",
     )
     parser.add_argument(
+        "--sample-strategy",
+        choices=["sequential", "stratified"],
+        default="sequential",
+        help=(
+            "Record selection strategy. 'sequential' reviews records in file order. "
+            "'stratified' balances review order across configured categories. "
+            "Default: sequential."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Allow relabeling records that already have human labels.",
@@ -326,6 +398,19 @@ def main() -> None:
     if args.limit < 0:
         raise ValueError("--limit must be >= 0")
 
+    records_to_review = select_records_for_review(
+        records,
+        start_index=args.start_index,
+        existing_labels=existing_labels,
+        overwrite=args.overwrite,
+        sample_strategy=args.sample_strategy,
+    )
+    session_records = records_to_review[: args.limit]
+    session_category_counts: dict[str, int] = {}
+
+    for _, record in session_records:
+        session_category_counts[record.category] = session_category_counts.get(record.category, 0) + 1
+
     reviewed_count = 0
     skipped_count = 0
 
@@ -336,6 +421,13 @@ def main() -> None:
     print(f"Validated records available: {len(records)}")
     print(f"Existing human labels: {len(existing_labels)}")
     print(f"New label limit: {args.limit}")
+    print(f"Sample strategy: {args.sample_strategy}")
+    print(f"Reviewable records after start/label filters: {len(records_to_review)}")
+    print(f"Planned records this session: {len(session_records)}")
+    if args.sample_strategy == "stratified":
+        print("Planned category mix:")
+        for category in CATEGORIES:
+            print(f"  {category}: {session_category_counts.get(category, 0)}")
     print()
     print("Input options:")
     print("  p / pass / 1 / y   = pass")
@@ -345,15 +437,10 @@ def main() -> None:
     print("  ? / help           = show rubric again")
     print()
 
-    records_to_review = records[args.start_index :]
-
-    for visible_index, record in enumerate(records_to_review, start=args.start_index + 1):
+    for visible_index, record in records_to_review:
         if reviewed_count >= args.limit:
             print(f"Reached label limit: {args.limit}")
             break
-
-        if not args.overwrite and record.trace_id in existing_labels:
-            continue
 
         display_record(record, item_number=visible_index, total_items=len(records))
 
