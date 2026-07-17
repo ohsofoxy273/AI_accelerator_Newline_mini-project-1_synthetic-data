@@ -16,6 +16,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import instructor
 from dotenv import load_dotenv
@@ -38,7 +39,7 @@ def ensure_dirs() -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def write_jsonl(path: Path, rows: list[dict]) -> None:
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     """Write rows to a JSONL file."""
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -47,13 +48,21 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def serialize_raw_completion(completion: Any) -> str:
+    """Serialize an LLM completion object for audit logging."""
+    if hasattr(completion, "model_dump_json"):
+        return str(completion.model_dump_json())
+
+    return json.dumps(completion, ensure_ascii=False, default=str)
+
+
 def build_user_prompt(category: str, prompt_variant: str) -> str:
     """Fill the generator prompt template for one category."""
     template = GENERATOR_PROMPTS[prompt_variant]
     return template.format(category=category)
 
 
-def make_client(model_name: str):
+def make_client(model_name: str) -> tuple[Any, str]:
     """Create an Instructor client for structured OpenAI outputs."""
     # Instructor wraps the OpenAI client and adds response_model support.
     # This lets us request a QAItem directly instead of manually parsing JSON.
@@ -62,7 +71,7 @@ def make_client(model_name: str):
 
 def generate_one_item(
     *,
-    client,
+    client: Any,
     model_name: str,
     category: str,
     prompt_variant: str,
@@ -74,7 +83,7 @@ def generate_one_item(
 
     user_prompt = build_user_prompt(category=category, prompt_variant=prompt_variant)
 
-    item: QAItem = client.chat.completions.create(
+    item, completion = client.chat.completions.create_with_completion(
         model=model_name,
         response_model=QAItem,
         max_retries=max_retries,
@@ -103,7 +112,7 @@ def generate_one_item(
         model_name=model_name,
         timestamp=datetime.now(),
         item=item,
-        raw_response=None,
+        raw_response=serialize_raw_completion(completion),
     )
 
 
@@ -115,11 +124,11 @@ def generate_dataset(
     temperature: float,
     max_retries: int,
     sleep_seconds: float,
-) -> tuple[list[GeneratedRecord], list[dict]]:
+) -> tuple[list[GeneratedRecord], list[dict[str, Any]]]:
     """Generate a balanced dataset across all configured categories."""
 
     records: list[GeneratedRecord] = []
-    logs: list[dict] = []
+    logs: list[dict[str, Any]] = []
 
     for category in CATEGORIES:
         for index in range(items_per_category):
@@ -150,6 +159,7 @@ def generate_dataset(
                         "prompt_variant": prompt_variant,
                         "model_name": resolved_model_name,
                         "timestamp": datetime.now().isoformat(),
+                        "raw_response": record.raw_response,
                         "error": None,
                     }
                 )
@@ -163,6 +173,7 @@ def generate_dataset(
                         "prompt_variant": prompt_variant,
                         "model_name": model_name,
                         "timestamp": datetime.now().isoformat(),
+                        "raw_response": None,
                         "error": repr(exc),
                     }
                 )
