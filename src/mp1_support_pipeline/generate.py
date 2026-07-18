@@ -4,8 +4,8 @@ This script generates structured synthetic customer support Q&A items for the
 medical question bank support domain.
 
 Output:
-    data/raw/generated_baseline.jsonl
-    logs/generation_baseline.jsonl
+    data/raw/generated_generator-<prompt_variant>_<run_id>.jsonl
+    logs/generation_generator-<prompt_variant>_<run_id>.jsonl
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ import instructor
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from mp1_support_pipeline.artifacts import artifact_filename, artifact_slug, default_run_id
 from mp1_support_pipeline.config import CATEGORIES, LOGS_DIR, RAW_DIR
 from mp1_support_pipeline.models import GeneratedRecord, QAItem
 from mp1_support_pipeline.prompts import GENERATOR_PROMPTS
@@ -29,8 +30,6 @@ from mp1_support_pipeline.prompts import GENERATOR_PROMPTS
 
 DEFAULT_ITEMS_PER_CATEGORY = 10
 DEFAULT_PROMPT_VARIANT = "baseline"
-DEFAULT_OUTPUT_FILENAME = "generated_baseline.jsonl"
-DEFAULT_LOG_FILENAME = "generation_baseline.jsonl"
 
 
 def ensure_dirs() -> None:
@@ -228,14 +227,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=str,
-        default=DEFAULT_OUTPUT_FILENAME,
-        help=f"Output JSONL filename in data/raw/. Default: {DEFAULT_OUTPUT_FILENAME}.",
+        default=None,
+        help=(
+            "Optional output JSONL filename in data/raw/. "
+            "Default: generated_generator-<prompt_variant>_<run_id>.jsonl."
+        ),
     )
     parser.add_argument(
         "--log-output",
         type=str,
-        default=DEFAULT_LOG_FILENAME,
-        help=f"Generation log filename in logs/. Default: {DEFAULT_LOG_FILENAME}.",
+        default=None,
+        help=(
+            "Optional generation log filename in logs/. "
+            "Default: generation_generator-<prompt_variant>_<run_id>.jsonl."
+        ),
+    )
+    parser.add_argument(
+        "--artifact-variant",
+        type=str,
+        default=None,
+        help=(
+            "Semantic variant used in generated artifact filenames. "
+            "Default: generator-<prompt_variant>."
+        ),
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run identifier used in artifact filenames. Default: timestamp YYYYMMDD_HHMMSS.",
     )
 
     return parser.parse_args()
@@ -256,11 +276,27 @@ def main() -> None:
         )
 
     model_name = args.model or os.getenv("GENERATOR_MODEL") or "gpt-5.4-mini"
+    run_id = args.run_id or default_run_id()
+    artifact_variant = args.artifact_variant or f"generator-{artifact_slug(args.prompt_variant)}"
+    output_filename = args.output or artifact_filename(
+        artifact_name="generated",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    log_filename = args.log_output or artifact_filename(
+        artifact_name="generation",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
 
     print("Step 1: Generate synthetic Q&A items")
     print("-----------------------------------")
     print(f"Model: {model_name}")
     print(f"Prompt variant: {args.prompt_variant}")
+    print(f"Artifact variant: {artifact_variant}")
+    print(f"Run ID: {run_id}")
     print(f"Items per category: {args.items_per_category}")
     print(f"Total target items: {args.items_per_category * len(CATEGORIES)}")
     print()
@@ -274,8 +310,8 @@ def main() -> None:
         sleep_seconds=args.sleep_seconds,
     )
 
-    output_path = RAW_DIR / args.output
-    log_path = LOGS_DIR / args.log_output
+    output_path = RAW_DIR / output_filename
+    log_path = LOGS_DIR / log_filename
 
     write_jsonl(
         output_path,

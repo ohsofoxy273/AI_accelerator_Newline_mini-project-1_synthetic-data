@@ -7,7 +7,7 @@ Input:
     data/validated/validated_baseline.jsonl
 
 Output:
-    data/labels/human_labels_baseline.jsonl
+    data/labels/human_labels_generator-<prompt_variant>_<run_id>.jsonl
 
 Examples:
     uv run python -m mp1_support_pipeline.human_label --limit 20
@@ -23,12 +23,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from mp1_support_pipeline.artifacts import artifact_filename, artifact_slug, default_run_id
 from mp1_support_pipeline.config import CATEGORIES, LABELS_DIR, QUALITY_DIMENSIONS, VALIDATED_DIR
 from mp1_support_pipeline.models import GeneratedRecord, QualityLabel
 
 
 DEFAULT_INPUT_FILENAME = "validated_baseline.jsonl"
-DEFAULT_OUTPUT_FILENAME = "human_labels_baseline.jsonl"
 DEFAULT_LIMIT = 20
 SampleStrategy = Literal["sequential", "stratified"]
 
@@ -128,6 +128,17 @@ def save_labels(path: Path, labels_by_trace_id: dict[str, QualityLabel]) -> None
         for _, label in sorted(labels_by_trace_id.items(), key=lambda item: item[0])
     ]
     write_jsonl(path, rows)
+
+
+def infer_generator_variant(records: list[GeneratedRecord]) -> str:
+    """Infer generator variant from validated records."""
+    variants = {
+        artifact_slug(record.prompt_variant)
+        for record in records
+        if record.prompt_variant
+    }
+
+    return next(iter(variants)) if len(variants) == 1 else "mixed"
 
 
 def is_reviewable(
@@ -345,8 +356,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=str,
-        default=DEFAULT_OUTPUT_FILENAME,
-        help=f"Output JSONL filename in data/labels/. Default: {DEFAULT_OUTPUT_FILENAME}.",
+        default=None,
+        help=(
+            "Optional output JSONL filename in data/labels/. "
+            "Default: human_labels_generator-<prompt_variant>_<run_id>.jsonl."
+        ),
     )
     parser.add_argument(
         "--limit",
@@ -375,6 +389,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Allow relabeling records that already have human labels.",
     )
+    parser.add_argument(
+        "--artifact-variant",
+        type=str,
+        default=None,
+        help=(
+            "Semantic variant used in generated artifact filenames. "
+            "Default: generator-<prompt_variant>."
+        ),
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run identifier used in artifact filenames. Default: timestamp YYYYMMDD_HHMMSS.",
+    )
 
     return parser.parse_args()
 
@@ -384,12 +413,22 @@ def main() -> None:
     args = parse_args()
 
     input_path = VALIDATED_DIR / args.input
-    output_path = LABELS_DIR / args.output
 
     if not input_path.exists():
         raise FileNotFoundError(f"Validated input file does not exist: {input_path}")
 
     records = load_records(input_path)
+    run_id = args.run_id or default_run_id()
+    artifact_variant = args.artifact_variant or (
+        f"generator-{infer_generator_variant(records)}"
+    )
+    output_filename = args.output or artifact_filename(
+        artifact_name="human_labels",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    output_path = LABELS_DIR / output_filename
     existing_labels = load_existing_labels(output_path)
 
     if args.start_index < 0:
@@ -416,6 +455,8 @@ def main() -> None:
 
     print("Step 3: Human labeling CLI")
     print("--------------------------")
+    print(f"Artifact variant: {artifact_variant}")
+    print(f"Run ID: {run_id}")
     print(f"Input: {input_path}")
     print(f"Output: {output_path}")
     print(f"Validated records available: {len(records)}")

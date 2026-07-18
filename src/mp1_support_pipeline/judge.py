@@ -7,8 +7,8 @@ Input:
     data/validated/validated_baseline.jsonl
 
 Output:
-    data/labels/llm_judge_labels_baseline.jsonl
-    logs/llm_judge_baseline.jsonl
+    data/labels/llm_judge_labels_generator-<prompt_variant>_judge-<prompt_version>_<run_id>.jsonl
+    logs/llm_judge_generator-<prompt_variant>_judge-<prompt_version>_<run_id>.jsonl
 
 Example:
     uv run python -m mp1_support_pipeline.judge --limit 48
@@ -29,14 +29,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
+from mp1_support_pipeline.artifacts import artifact_filename, artifact_slug, default_run_id
 from mp1_support_pipeline.config import LABELS_DIR, LOGS_DIR, VALIDATED_DIR
 from mp1_support_pipeline.models import GeneratedRecord, QualityLabel
 from mp1_support_pipeline.prompts import JUDGE_PROMPTS
 
 
 DEFAULT_INPUT_FILENAME = "validated_baseline.jsonl"
-DEFAULT_OUTPUT_FILENAME = "llm_judge_labels_baseline.jsonl"
-DEFAULT_LOG_FILENAME = "llm_judge_baseline.jsonl"
 DEFAULT_PROMPT_VERSION = "v1"
 DEFAULT_LIMIT: int | None = None
 
@@ -124,6 +123,17 @@ def save_labels(path: Path, labels_by_trace_id: dict[str, QualityLabel]) -> None
         for _, label in sorted(labels_by_trace_id.items(), key=lambda item: item[0])
     ]
     write_jsonl(path, rows)
+
+
+def infer_generator_variant(records: list[GeneratedRecord]) -> str:
+    """Infer generator variant from validated records."""
+    variants = {
+        artifact_slug(record.prompt_variant)
+        for record in records
+        if record.prompt_variant
+    }
+
+    return next(iter(variants)) if len(variants) == 1 else "mixed"
 
 
 def make_client() -> Any:
@@ -215,14 +225,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=str,
-        default=DEFAULT_OUTPUT_FILENAME,
-        help=f"Output JSONL filename in data/labels/. Default: {DEFAULT_OUTPUT_FILENAME}.",
+        default=None,
+        help=(
+            "Optional output JSONL filename in data/labels/. Default: "
+            "llm_judge_labels_generator-<prompt_variant>_judge-<prompt_version>_<run_id>.jsonl."
+        ),
     )
     parser.add_argument(
         "--log-output",
         type=str,
-        default=DEFAULT_LOG_FILENAME,
-        help=f"Judge audit log JSONL filename in logs/. Default: {DEFAULT_LOG_FILENAME}.",
+        default=None,
+        help=(
+            "Optional judge audit log JSONL filename in logs/. Default: "
+            "llm_judge_generator-<prompt_variant>_judge-<prompt_version>_<run_id>.jsonl."
+        ),
     )
     parser.add_argument(
         "--prompt-version",
@@ -271,6 +287,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Allow relabeling records that already have LLM judge labels.",
     )
+    parser.add_argument(
+        "--artifact-variant",
+        type=str,
+        default=None,
+        help=(
+            "Semantic variant used in generated artifact filenames. "
+            "Default: generator-<prompt_variant>_judge-<prompt_version>."
+        ),
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run identifier used in artifact filenames. Default: timestamp YYYYMMDD_HHMMSS.",
+    )
 
     return parser.parse_args()
 
@@ -295,13 +326,32 @@ def main() -> None:
         raise ValueError("--limit must be >= 0")
 
     input_path = VALIDATED_DIR / args.input
-    output_path = LABELS_DIR / args.output
-    log_path = LOGS_DIR / args.log_output
 
     if not input_path.exists():
         raise FileNotFoundError(f"Validated input file does not exist: {input_path}")
 
     records = load_records(input_path)
+    run_id = args.run_id or default_run_id()
+    generator_variant = infer_generator_variant(records)
+    judge_variant = artifact_slug(args.prompt_version)
+    artifact_variant = (
+        args.artifact_variant
+        or f"generator-{generator_variant}_judge-{judge_variant}"
+    )
+    output_filename = args.output or artifact_filename(
+        artifact_name="llm_judge_labels",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    log_filename = args.log_output or artifact_filename(
+        artifact_name="llm_judge",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    output_path = LABELS_DIR / output_filename
+    log_path = LOGS_DIR / log_filename
     existing_labels = load_existing_judge_labels(output_path)
     records_to_judge = [
         record
@@ -318,6 +368,8 @@ def main() -> None:
     print("-----------------------------")
     print(f"Model: {model_name}")
     print(f"Prompt version: {args.prompt_version}")
+    print(f"Artifact variant: {artifact_variant}")
+    print(f"Run ID: {run_id}")
     print(f"Input: {input_path}")
     print(f"Output: {output_path}")
     print(f"Audit log: {log_path}")

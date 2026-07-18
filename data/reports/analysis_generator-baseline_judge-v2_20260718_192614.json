@@ -1,0 +1,610 @@
+{
+  "step": "step_5_analysis",
+  "timestamp": "2026-07-18T19:26:14.461502",
+  "inputs": {
+    "raw_records": 50,
+    "validated_records": 48,
+    "gate_results": 50,
+    "human_labels": 20,
+    "judge_labels": 48,
+    "human_judge_overlap": 20
+  },
+  "category_distribution": {
+    "raw": {
+      "login_account_access": {
+        "count": 10,
+        "share": 0.2
+      },
+      "billing_subscription_plan_changes": {
+        "count": 10,
+        "share": 0.2
+      },
+      "content_access_activation": {
+        "count": 10,
+        "share": 0.2
+      },
+      "technical_bugs_device_browser": {
+        "count": 10,
+        "share": 0.2
+      },
+      "institutional_invoice_documentation": {
+        "count": 10,
+        "share": 0.2
+      }
+    },
+    "validated": {
+      "login_account_access": {
+        "count": 10,
+        "share": 0.2083
+      },
+      "billing_subscription_plan_changes": {
+        "count": 10,
+        "share": 0.2083
+      },
+      "content_access_activation": {
+        "count": 9,
+        "share": 0.1875
+      },
+      "technical_bugs_device_browser": {
+        "count": 10,
+        "share": 0.2083
+      },
+      "institutional_invoice_documentation": {
+        "count": 9,
+        "share": 0.1875
+      }
+    }
+  },
+  "quality_gate": {
+    "step": "step_2_quality_gate",
+    "timestamp": "2026-06-26T13:17:52.623546",
+    "input_count": 50,
+    "schema_failure_count": 0,
+    "structural_validation_pass_rate": 1.0,
+    "per_item_gate_pass_count_before_dedup": 48,
+    "per_item_gate_pass_rate_before_dedup": 0.96,
+    "duplicate_count": 0,
+    "final_validated_count": 48,
+    "final_validated_rate": 0.96,
+    "failed_check_counts": {
+      "d1_answer_too_short": 2
+    },
+    "category_distribution": {
+      "total_validated_after_dedup": 48,
+      "category_details": {
+        "login_account_access": {
+          "count": 10,
+          "share": 0.2083,
+          "target_share": 0.2,
+          "minimum_allowed_share": 0.18,
+          "passes_minimum_share": true
+        },
+        "billing_subscription_plan_changes": {
+          "count": 10,
+          "share": 0.2083,
+          "target_share": 0.2,
+          "minimum_allowed_share": 0.18,
+          "passes_minimum_share": true
+        },
+        "content_access_activation": {
+          "count": 9,
+          "share": 0.1875,
+          "target_share": 0.2,
+          "minimum_allowed_share": 0.18,
+          "passes_minimum_share": true
+        },
+        "technical_bugs_device_browser": {
+          "count": 10,
+          "share": 0.2083,
+          "target_share": 0.2,
+          "minimum_allowed_share": 0.18,
+          "passes_minimum_share": true
+        },
+        "institutional_invoice_documentation": {
+          "count": 9,
+          "share": 0.1875,
+          "target_share": 0.2,
+          "minimum_allowed_share": 0.18,
+          "passes_minimum_share": true
+        }
+      },
+      "unexpected_categories": [],
+      "distribution_passed": true
+    },
+    "batch_gate_passed": true,
+    "notes": [
+      "This gate is a lightweight first-pass filter, not the full quality evaluator.",
+      "Full semantic evaluation happens later through human labels and LLM-as-judge labels.",
+      "If batch_gate_passed is false, inspect failed_check_counts and category_distribution before regenerating."
+    ]
+  },
+  "human_label_pass_rates": {
+    "answer_completeness": {
+      "pass_count": 7,
+      "total": 20,
+      "pass_rate": 0.35
+    },
+    "safety_specificity": {
+      "pass_count": 19,
+      "total": 20,
+      "pass_rate": 0.95
+    },
+    "tool_realism": {
+      "pass_count": 4,
+      "total": 20,
+      "pass_rate": 0.2
+    },
+    "scope_appropriateness": {
+      "pass_count": 7,
+      "total": 20,
+      "pass_rate": 0.35
+    },
+    "context_clarity": {
+      "pass_count": 15,
+      "total": 20,
+      "pass_rate": 0.75
+    },
+    "tip_usefulness": {
+      "pass_count": 10,
+      "total": 20,
+      "pass_rate": 0.5
+    },
+    "overall_pass": {
+      "pass_count": 2,
+      "total": 20,
+      "pass_rate": 0.1
+    }
+  },
+  "judge_label_pass_rates": {
+    "answer_completeness": {
+      "pass_count": 21,
+      "total": 48,
+      "pass_rate": 0.4375
+    },
+    "safety_specificity": {
+      "pass_count": 47,
+      "total": 48,
+      "pass_rate": 0.9792
+    },
+    "tool_realism": {
+      "pass_count": 13,
+      "total": 48,
+      "pass_rate": 0.2708
+    },
+    "scope_appropriateness": {
+      "pass_count": 17,
+      "total": 48,
+      "pass_rate": 0.3542
+    },
+    "context_clarity": {
+      "pass_count": 30,
+      "total": 48,
+      "pass_rate": 0.625
+    },
+    "tip_usefulness": {
+      "pass_count": 15,
+      "total": 48,
+      "pass_rate": 0.3125
+    },
+    "overall_pass": {
+      "pass_count": 9,
+      "total": 48,
+      "pass_rate": 0.1875
+    }
+  },
+  "human_judge_agreement": {
+    "threshold": 0.8,
+    "overlap_count": 20,
+    "overlap_trace_ids": [
+      "baseline_billing_subscription_plan_changes_001",
+      "baseline_billing_subscription_plan_changes_002",
+      "baseline_billing_subscription_plan_changes_003",
+      "baseline_billing_subscription_plan_changes_004",
+      "baseline_content_access_activation_001",
+      "baseline_content_access_activation_003",
+      "baseline_content_access_activation_004",
+      "baseline_content_access_activation_005",
+      "baseline_institutional_invoice_documentation_001",
+      "baseline_institutional_invoice_documentation_002",
+      "baseline_institutional_invoice_documentation_004",
+      "baseline_institutional_invoice_documentation_005",
+      "baseline_login_account_access_001",
+      "baseline_login_account_access_002",
+      "baseline_login_account_access_003",
+      "baseline_login_account_access_004",
+      "baseline_technical_bugs_device_browser_001",
+      "baseline_technical_bugs_device_browser_002",
+      "baseline_technical_bugs_device_browser_003",
+      "baseline_technical_bugs_device_browser_004"
+    ],
+    "by_dimension": {
+      "answer_completeness": {
+        "agree_count": 16,
+        "total": 20,
+        "agreement_rate": 0.8,
+        "meets_threshold": true
+      },
+      "safety_specificity": {
+        "agree_count": 18,
+        "total": 20,
+        "agreement_rate": 0.9,
+        "meets_threshold": true
+      },
+      "tool_realism": {
+        "agree_count": 13,
+        "total": 20,
+        "agreement_rate": 0.65,
+        "meets_threshold": false
+      },
+      "scope_appropriateness": {
+        "agree_count": 15,
+        "total": 20,
+        "agreement_rate": 0.75,
+        "meets_threshold": false
+      },
+      "context_clarity": {
+        "agree_count": 14,
+        "total": 20,
+        "agreement_rate": 0.7,
+        "meets_threshold": false
+      },
+      "tip_usefulness": {
+        "agree_count": 12,
+        "total": 20,
+        "agreement_rate": 0.6,
+        "meets_threshold": false
+      },
+      "overall_pass": {
+        "agree_count": 15,
+        "total": 20,
+        "agreement_rate": 0.75,
+        "meets_threshold": false
+      }
+    },
+    "dimensions_below_threshold": [
+      "tool_realism",
+      "scope_appropriateness",
+      "context_clarity",
+      "tip_usefulness"
+    ],
+    "judge_calibration_required": true
+  },
+  "segments": {
+    "gate_by_category": {
+      "login_account_access": {
+        "count": 10,
+        "pass_count": 10,
+        "pass_rate": 1.0,
+        "failed_check_counts": {}
+      },
+      "billing_subscription_plan_changes": {
+        "count": 10,
+        "pass_count": 10,
+        "pass_rate": 1.0,
+        "failed_check_counts": {}
+      },
+      "content_access_activation": {
+        "count": 10,
+        "pass_count": 9,
+        "pass_rate": 0.9,
+        "failed_check_counts": {
+          "d1_answer_too_short": 1
+        }
+      },
+      "technical_bugs_device_browser": {
+        "count": 10,
+        "pass_count": 10,
+        "pass_rate": 1.0,
+        "failed_check_counts": {}
+      },
+      "institutional_invoice_documentation": {
+        "count": 10,
+        "pass_count": 9,
+        "pass_rate": 0.9,
+        "failed_check_counts": {
+          "d1_answer_too_short": 1
+        }
+      }
+    },
+    "gate_by_prompt_variant": {
+      "baseline": {
+        "count": 50,
+        "pass_count": 48,
+        "pass_rate": 0.96
+      }
+    },
+    "human_by_category": {
+      "login_account_access": {
+        "count": 4,
+        "overall_pass_rate": 0.0,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.5,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.0,
+          "scope_appropriateness": 0.5,
+          "context_clarity": 1.0,
+          "tip_usefulness": 1.0
+        }
+      },
+      "billing_subscription_plan_changes": {
+        "count": 4,
+        "overall_pass_rate": 0.0,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.0,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.5,
+          "scope_appropriateness": 0.0,
+          "context_clarity": 1.0,
+          "tip_usefulness": 0.0
+        }
+      },
+      "content_access_activation": {
+        "count": 4,
+        "overall_pass_rate": 0.0,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.0,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.0,
+          "scope_appropriateness": 0.0,
+          "context_clarity": 0.25,
+          "tip_usefulness": 0.0
+        }
+      },
+      "technical_bugs_device_browser": {
+        "count": 4,
+        "overall_pass_rate": 0.25,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.75,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.25,
+          "scope_appropriateness": 0.75,
+          "context_clarity": 0.75,
+          "tip_usefulness": 0.75
+        }
+      },
+      "institutional_invoice_documentation": {
+        "count": 4,
+        "overall_pass_rate": 0.25,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.5,
+          "safety_specificity": 0.75,
+          "tool_realism": 0.25,
+          "scope_appropriateness": 0.5,
+          "context_clarity": 0.75,
+          "tip_usefulness": 0.75
+        }
+      }
+    },
+    "judge_by_category": {
+      "login_account_access": {
+        "count": 10,
+        "overall_pass_rate": 0.0,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.2,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.0,
+          "scope_appropriateness": 0.1,
+          "context_clarity": 0.4,
+          "tip_usefulness": 0.1
+        }
+      },
+      "billing_subscription_plan_changes": {
+        "count": 10,
+        "overall_pass_rate": 0.1,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.1,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.5,
+          "scope_appropriateness": 0.1,
+          "context_clarity": 0.8,
+          "tip_usefulness": 0.1
+        }
+      },
+      "content_access_activation": {
+        "count": 9,
+        "overall_pass_rate": 0.0,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.2222,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.0,
+          "scope_appropriateness": 0.0,
+          "context_clarity": 0.1111,
+          "tip_usefulness": 0.0
+        }
+      },
+      "technical_bugs_device_browser": {
+        "count": 10,
+        "overall_pass_rate": 0.1,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.9,
+          "safety_specificity": 0.9,
+          "tool_realism": 0.1,
+          "scope_appropriateness": 0.8,
+          "context_clarity": 0.8,
+          "tip_usefulness": 0.6
+        }
+      },
+      "institutional_invoice_documentation": {
+        "count": 9,
+        "overall_pass_rate": 0.7778,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.7778,
+          "safety_specificity": 1.0,
+          "tool_realism": 0.7778,
+          "scope_appropriateness": 0.7778,
+          "context_clarity": 1.0,
+          "tip_usefulness": 0.7778
+        }
+      }
+    },
+    "human_by_prompt_variant": {
+      "baseline": {
+        "count": 20,
+        "overall_pass_rate": 0.1
+      }
+    },
+    "judge_by_prompt_variant": {
+      "baseline": {
+        "count": 48,
+        "overall_pass_rate": 0.1875
+      }
+    },
+    "judge_by_judge_prompt_version": {
+      "v2": {
+        "count": 48,
+        "overall_pass_rate": 0.1875,
+        "dimension_pass_rates": {
+          "answer_completeness": 0.4375,
+          "safety_specificity": 0.9792,
+          "tool_realism": 0.2708,
+          "scope_appropriateness": 0.3542,
+          "context_clarity": 0.625,
+          "tip_usefulness": 0.3125
+        }
+      }
+    },
+    "agreement_by_judge_prompt_version": {
+      "v2": {
+        "overlap_count": 20,
+        "by_dimension": {
+          "answer_completeness": {
+            "agree_count": 16,
+            "total": 20,
+            "agreement_rate": 0.8,
+            "meets_threshold": true
+          },
+          "safety_specificity": {
+            "agree_count": 18,
+            "total": 20,
+            "agreement_rate": 0.9,
+            "meets_threshold": true
+          },
+          "tool_realism": {
+            "agree_count": 13,
+            "total": 20,
+            "agreement_rate": 0.65,
+            "meets_threshold": false
+          },
+          "scope_appropriateness": {
+            "agree_count": 15,
+            "total": 20,
+            "agreement_rate": 0.75,
+            "meets_threshold": false
+          },
+          "context_clarity": {
+            "agree_count": 14,
+            "total": 20,
+            "agreement_rate": 0.7,
+            "meets_threshold": false
+          },
+          "tip_usefulness": {
+            "agree_count": 12,
+            "total": 20,
+            "agreement_rate": 0.6,
+            "meets_threshold": false
+          }
+        },
+        "dimensions_below_threshold": [
+          "tool_realism",
+          "scope_appropriateness",
+          "context_clarity",
+          "tip_usefulness"
+        ]
+      }
+    },
+    "worst_human_categories": [
+      {
+        "category": "login_account_access",
+        "count": 4,
+        "overall_pass_rate": 0.0
+      },
+      {
+        "category": "billing_subscription_plan_changes",
+        "count": 4,
+        "overall_pass_rate": 0.0
+      },
+      {
+        "category": "content_access_activation",
+        "count": 4,
+        "overall_pass_rate": 0.0
+      },
+      {
+        "category": "technical_bugs_device_browser",
+        "count": 4,
+        "overall_pass_rate": 0.25
+      },
+      {
+        "category": "institutional_invoice_documentation",
+        "count": 4,
+        "overall_pass_rate": 0.25
+      }
+    ],
+    "worst_judge_categories": [
+      {
+        "category": "login_account_access",
+        "count": 10,
+        "overall_pass_rate": 0.0
+      },
+      {
+        "category": "content_access_activation",
+        "count": 9,
+        "overall_pass_rate": 0.0
+      },
+      {
+        "category": "billing_subscription_plan_changes",
+        "count": 10,
+        "overall_pass_rate": 0.1
+      },
+      {
+        "category": "technical_bugs_device_browser",
+        "count": 10,
+        "overall_pass_rate": 0.1
+      },
+      {
+        "category": "institutional_invoice_documentation",
+        "count": 9,
+        "overall_pass_rate": 0.7778
+      }
+    ]
+  },
+  "diagnosis": {
+    "judge_calibration_required": true,
+    "dimensions_below_80pct_agreement": [
+      "tool_realism",
+      "scope_appropriateness",
+      "context_clarity",
+      "tip_usefulness"
+    ],
+    "next_recommended_step": "Step 6 Phase A: calibrate the LLM judge prompt before generator correction."
+  },
+  "artifact_variant": "generator-baseline_judge-v2",
+  "run_id": "20260718_192614",
+  "artifact_stem": "generator-baseline_judge-v2_20260718_192614",
+  "outputs": {
+    "report": "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/data/reports/analysis_generator-baseline_judge-v2_20260718_192614.json",
+    "trace_records": "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/data/reports/trace_records_generator-baseline_judge-v2_20260718_192614.jsonl",
+    "analysis_log": "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/logs/analysis_generator-baseline_judge-v2_20260718_192614.jsonl",
+    "visualizations": [
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_labeler_dimension_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_judge_agreement_by_dimension.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_category_distribution_raw_vs_validated.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_category_overall_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_category_overall_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_category_dimension_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_category_dimension_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_gate_category_pass_rates.png",
+      "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_prompt_version_pass_rates.png"
+    ]
+  },
+  "visualizations": [
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_labeler_dimension_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_judge_agreement_by_dimension.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_category_distribution_raw_vs_validated.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_category_overall_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_category_overall_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_category_dimension_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_human_category_dimension_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_gate_category_pass_rates.png",
+    "/Users/matthewfox/pythonApps/AI_accelerator_Newline/mini-project-1_synthetic-data/visualizations/generator-baseline_judge-v2_20260718_192614_judge_prompt_version_pass_rates.png"
+  ]
+}

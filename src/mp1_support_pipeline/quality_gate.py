@@ -8,9 +8,9 @@ Input:
     data/raw/generated_baseline.jsonl
 
 Outputs:
-    data/validated/validated_baseline.jsonl
-    data/reports/quality_gate_baseline.json
-    logs/quality_gate_baseline.jsonl
+    data/validated/validated_generator-<prompt_variant>_<run_id>.jsonl
+    data/reports/quality_gate_generator-<prompt_variant>_<run_id>.json
+    logs/quality_gate_generator-<prompt_variant>_<run_id>.jsonl
 
 This is intentionally not the full quality judge. It is a first-pass gate
 that catches obvious problems before human labeling and LLM-as-judge scoring.
@@ -29,6 +29,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from mp1_support_pipeline.artifacts import artifact_filename, artifact_slug, default_run_id
 from mp1_support_pipeline.config import (
     CATEGORIES,
     LOGS_DIR,
@@ -40,9 +41,6 @@ from mp1_support_pipeline.models import GeneratedRecord, GateResult
 
 
 DEFAULT_INPUT_FILENAME = "generated_baseline.jsonl"
-DEFAULT_VALIDATED_FILENAME = "validated_baseline.jsonl"
-DEFAULT_REPORT_FILENAME = "quality_gate_baseline.json"
-DEFAULT_LOG_FILENAME = "quality_gate_baseline.jsonl"
 
 DEFAULT_MIN_CATEGORY_SHARE = 0.18
 DEFAULT_DUPLICATE_SIMILARITY_THRESHOLD = 0.92
@@ -213,6 +211,17 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     """Write a dictionary to a pretty JSON file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def infer_generator_variant(records: list[GeneratedRecord]) -> str:
+    """Infer generator variant from generated records."""
+    variants = {
+        artifact_slug(record.prompt_variant)
+        for record in records
+        if record.prompt_variant
+    }
+
+    return next(iter(variants)) if len(variants) == 1 else "mixed"
 
 
 def normalize_text(text: str) -> str:
@@ -678,23 +687,44 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--validated-output",
         type=str,
-        default=DEFAULT_VALIDATED_FILENAME,
+        default=None,
         help=(
             "Validated output JSONL filename in data/validated/. "
-            f"Default: {DEFAULT_VALIDATED_FILENAME}."
+            "Default: validated_generator-<prompt_variant>_<run_id>.jsonl."
         ),
     )
     parser.add_argument(
         "--report-output",
         type=str,
-        default=DEFAULT_REPORT_FILENAME,
-        help=f"Report JSON filename in data/reports/. Default: {DEFAULT_REPORT_FILENAME}.",
+        default=None,
+        help=(
+            "Report JSON filename in data/reports/. "
+            "Default: quality_gate_generator-<prompt_variant>_<run_id>.json."
+        ),
     )
     parser.add_argument(
         "--log-output",
         type=str,
-        default=DEFAULT_LOG_FILENAME,
-        help=f"Per-item log JSONL filename in logs/. Default: {DEFAULT_LOG_FILENAME}.",
+        default=None,
+        help=(
+            "Per-item log JSONL filename in logs/. "
+            "Default: quality_gate_generator-<prompt_variant>_<run_id>.jsonl."
+        ),
+    )
+    parser.add_argument(
+        "--artifact-variant",
+        type=str,
+        default=None,
+        help=(
+            "Semantic variant used in generated artifact filenames. "
+            "Default: generator-<prompt_variant>."
+        ),
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run identifier used in artifact filenames. Default: timestamp YYYYMMDD_HHMMSS.",
     )
     parser.add_argument(
         "--min-category-share",
@@ -724,22 +754,53 @@ def main() -> None:
     args = parse_args()
 
     input_path = RAW_DIR / args.input
-    validated_path = VALIDATED_DIR / args.validated_output
-    report_path = REPORTS_DIR / args.report_output
-    log_path = LOGS_DIR / args.log_output
 
     if not input_path.exists():
         raise FileNotFoundError(f"Input file does not exist: {input_path}")
 
+    raw_rows = read_jsonl(input_path)
+    schema_valid_records: list[GeneratedRecord] = []
+    for row in raw_rows:
+        try:
+            schema_valid_records.append(GeneratedRecord.model_validate(row))
+        except ValidationError:
+            continue
+
+    run_id = args.run_id or default_run_id()
+    artifact_variant = args.artifact_variant or (
+        f"generator-{infer_generator_variant(schema_valid_records)}"
+    )
+    validated_filename = args.validated_output or artifact_filename(
+        artifact_name="validated",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    report_filename = args.report_output or artifact_filename(
+        artifact_name="quality_gate",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="json",
+    )
+    log_filename = args.log_output or artifact_filename(
+        artifact_name="quality_gate",
+        artifact_variant=artifact_variant,
+        run_id=run_id,
+        extension="jsonl",
+    )
+    validated_path = VALIDATED_DIR / validated_filename
+    report_path = REPORTS_DIR / report_filename
+    log_path = LOGS_DIR / log_filename
+
     print("Step 2: Data quality gate")
     print("-------------------------")
+    print(f"Artifact variant: {artifact_variant}")
+    print(f"Run ID: {run_id}")
     print(f"Input: {input_path}")
     print(f"Validated output: {validated_path}")
     print(f"Report output: {report_path}")
     print(f"Log output: {log_path}")
     print()
-
-    raw_rows = read_jsonl(input_path)
 
     per_item_accepted, per_item_logs = validate_raw_rows(raw_rows)
 
@@ -755,6 +816,14 @@ def main() -> None:
         validated_records=deduped_records,
         min_category_share=args.min_category_share,
     )
+    report["artifact_variant"] = artifact_variant
+    report["run_id"] = run_id
+    report["artifact_stem"] = f"{artifact_variant}_{run_id}"
+    report["outputs"] = {
+        "validated": str(validated_path),
+        "report": str(report_path),
+        "log": str(log_path),
+    }
 
     write_jsonl(
         validated_path,
