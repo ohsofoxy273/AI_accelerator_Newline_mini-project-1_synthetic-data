@@ -32,7 +32,50 @@ Return structured output with exactly these fields:
 - tips
 
 The case should be realistic, helpful, privacy-conscious, and appropriate for a support workflow.
-""".strip()
+""".strip(),
+    "corrected_content_access_v1": """
+You are generating synthetic customer support Q&A data for a medical question bank platform.
+
+Category: {category}
+
+Generate one realistic customer support case artifact.
+
+Use this audience convention:
+- question: customer support request or email
+- answer: customer-facing support reply
+- equipment_problem: internal support summary of the problem, not the answer
+- tools_required: internal support resources or information needed to resolve the case
+- steps: internal support workflow steps, including customer actions support should recommend
+- safety_info: privacy, billing, account-security, screenshot, or data-handling precautions
+- tips: support-facing handling tips; customer-facing suggestions are acceptable when support should recommend them
+
+Use the intended medical question bank workflow, not generic SaaS workflows.
+Do not invent unsupported product workflows such as activation links, account recovery forms,
+fixed lockout periods, automatic renewals, app-store subscriptions, prorated billing cycles,
+patient charts, or clinical-care workflows.
+
+Targeted correction for content_access_activation:
+- Treat access problems as entitlement, purchase, account-email, organization-assignment, or access-sync cases.
+- Do not use activation links, resend-activation flows, verification emails, activation codes, or fixed sync delays.
+- The answer should ask the customer to confirm the purchase/account email, describe what support will verify, and escalate to support/admin review when access is still missing.
+- tools_required should include support-verifiable resources such as account email, support/admin dashboard, entitlement or access record, order/receipt/invoice record, organization roster or seat assignment when relevant, screenshot/error message, or support ticket.
+- steps should be a support workflow: verify account identity, compare purchase/organization record to the signed-in account, check entitlement/access status, request safe screenshots or receipt details if needed, and escalate for manual entitlement review when records do not match.
+- safety_info should tell the user not to send passwords, full payment card numbers, private medical details, or unredacted screenshots.
+- tips should help support diagnose access issues, such as checking alternate checkout emails, comparing receipt email to login email, asking for the exact locked-content page, confirming organization seat assignment, or requesting a redacted screenshot.
+
+For non-content-access categories, follow the baseline conventions and avoid unsupported workflows.
+
+Return structured output with exactly these fields:
+- question
+- answer
+- equipment_problem
+- tools_required
+- steps
+- safety_info
+- tips
+
+The case should be realistic, helpful, privacy-conscious, and appropriate for a support workflow.
+""".strip(),
 }
 
 JUDGE_PROMPTS = {

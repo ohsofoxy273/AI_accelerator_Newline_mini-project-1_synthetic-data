@@ -87,3 +87,17 @@ This adaptation keeps the original project’s required technical approach:
 * Judge calibration before generator correction
 * Before/after prompt improvement comparison
 * Same success criteria and evaluation logic
+
+## Final Prompt Variants
+
+The completed project uses:
+
+- Baseline generator: `GENERATOR_PROMPTS["baseline"]`
+- Corrected generator: `GENERATOR_PROMPTS["corrected_content_access_v1"]`
+- Calibrated judge: `JUDGE_PROMPTS["v6"]`
+
+The corrected generator variant was targeted at the weakest baseline segment,
+`content_access_activation`, after the judge reached at least 80% agreement with
+human labels on all six dimensions.
+
+See `docs/project_completion_summary.md` for final metrics and evidence files.

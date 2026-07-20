@@ -32,3 +32,10 @@ The current gate appears appropriately calibrated as a first-pass filter: it cat
 ## Decision
 
 Proceed to Step 3: human labeling CLI. The generator prompt should not be improved yet. Prompt correction should wait until human labels, LLM judge labels, and Step 5 analysis identify the weakest dimensions and trace segments.
+
+## Final Project Note
+
+The baseline quality gate result was used as before-state evidence. The corrected
+generator run `corrected_content_access_v1` later passed the quality gate with
+50 validated records, 0 schema failures, 0 duplicates removed, and batch
+distribution passed. See `docs/project_completion_summary.md`.

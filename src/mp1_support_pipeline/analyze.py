@@ -243,6 +243,7 @@ def agreement_metrics(
 ) -> dict[str, Any]:
     """Compute human/LLM judge agreement on overlapping trace IDs."""
     overlap_trace_ids = sorted(set(human_labels) & set(judge_labels))
+    agreement_evaluable = bool(overlap_trace_ids)
     by_dimension: dict[str, Any] = {}
 
     for dimension in QUALITY_DIMENSIONS:
@@ -276,19 +277,24 @@ def agreement_metrics(
         "meets_threshold": overall_rate >= AGREEMENT_THRESHOLD if overall_rate is not None else False,
     }
 
-    dimensions_below_threshold = [
-        dimension
-        for dimension, metrics in by_dimension.items()
-        if dimension != "overall_pass" and not metrics["meets_threshold"]
-    ]
+    dimensions_below_threshold = (
+        [
+            dimension
+            for dimension, metrics in by_dimension.items()
+            if dimension != "overall_pass" and not metrics["meets_threshold"]
+        ]
+        if agreement_evaluable
+        else []
+    )
 
     return {
         "threshold": AGREEMENT_THRESHOLD,
+        "agreement_evaluable": agreement_evaluable,
         "overlap_count": len(overlap_trace_ids),
         "overlap_trace_ids": overlap_trace_ids,
         "by_dimension": by_dimension,
         "dimensions_below_threshold": dimensions_below_threshold,
-        "judge_calibration_required": bool(dimensions_below_threshold),
+        "judge_calibration_required": agreement_evaluable and bool(dimensions_below_threshold),
     }
 
 
@@ -536,6 +542,20 @@ def build_analysis_report(
     human_category_metrics = labels_by_category(human_labels, raw_records)
     judge_category_metrics = labels_by_category(judge_labels, raw_records)
     agreement = agreement_metrics(human_labels, judge_labels)
+    if not agreement["agreement_evaluable"]:
+        next_recommended_step = (
+            "Human/LLM agreement is not evaluable for this run because there are no "
+            "overlapping trace IDs; use the previously calibrated judge for Phase B "
+            "generator comparison or add human labels for this dataset."
+        )
+    elif agreement["judge_calibration_required"]:
+        next_recommended_step = (
+            "Step 6 Phase A: calibrate the LLM judge prompt before generator correction."
+        )
+    else:
+        next_recommended_step = (
+            "Step 6 Phase B: use the calibrated judge to guide generator correction."
+        )
 
     return {
         "step": "step_5_analysis",
@@ -572,13 +592,10 @@ def build_analysis_report(
             "worst_judge_categories": worst_segments(judge_category_metrics),
         },
         "diagnosis": {
+            "agreement_evaluable": agreement["agreement_evaluable"],
             "judge_calibration_required": agreement["judge_calibration_required"],
             "dimensions_below_80pct_agreement": agreement["dimensions_below_threshold"],
-            "next_recommended_step": (
-                "Step 6 Phase A: calibrate the LLM judge prompt before generator correction."
-                if agreement["judge_calibration_required"]
-                else "Step 6 Phase B: use the calibrated judge to guide generator correction."
-            ),
+            "next_recommended_step": next_recommended_step,
         },
     }
 
